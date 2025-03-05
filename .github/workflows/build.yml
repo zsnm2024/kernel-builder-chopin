@@ -260,8 +260,7 @@ jobs:
           cp ../susfs4ksu/kernel_patches/include/linux/* ./include/linux/
 
           # Apply common SUSFS patch
-          cd ./KernelSU
-          cd ..
+          cd ${{ env.KERNEL_NAME }}
           patch -p1 < 50_add_susfs_in_${{ env.SFS_BRANCH }}.patch || true
           # Apply Hide Stuff Patches
           cp ../kernel_patches/69_hide_stuff.patch ./
