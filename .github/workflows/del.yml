@@ -1,16 +1,15 @@
-
-name: Delete old Releases and Workflows
+name: Delete old workflow runs
 on:
   workflow_dispatch:
     inputs:
       days:
         description: "Number of days."
         required: true
-        default: "7"
+        default: "30"
       minimum_runs:
         description: "The minimum runs to keep for each workflow."
         required: true
-        default: "2"
+        default: "6"
       delete_workflow_pattern:
         description: "The name or filename of the workflow. if not set then it will target all workflows."
         required: false
@@ -40,17 +39,15 @@ on:
       dry_run:
         description: "Only log actions, do not perform any delete operations."
         required: false
-  schedule:
-    - cron: '00 22 * * 0'
-
-permissions: write-all
 
 jobs:
   del_runs:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
     steps:
-      - name: Delete old Workflows
-        uses: Mattraks/delete-workflow-runs@v2
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@v4
         with:
           token: ${{ github.token }}
           repository: ${{ github.repository }}
@@ -60,11 +57,3 @@ jobs:
           delete_workflow_by_state_pattern: ${{ github.event.inputs.delete_workflow_by_state_pattern }}
           delete_run_by_conclusion_pattern: ${{ github.event.inputs.delete_run_by_conclusion_pattern }}
           dry_run: ${{ github.event.inputs.dry_run }}
-
-      - name: Delete old Releases
-        uses: ophub/delete-releases-workflows@main
-        with:
-          gh_token: ${{secrets.GITHUB_TOKEN}}
-          delete_releases: true
-          releases_keep_latest: 2
-          delete_tags: true
