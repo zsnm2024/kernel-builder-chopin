@@ -401,7 +401,7 @@ make -j$(nproc --all) \
 >
 > 这是由于您的 `Workflow` 权限导致的:
 >
-> ![workflow permissions](./.assets/FAQ/workflow%20permissions.png)
+> ![workflow permissions](./.assets/workflow%20permissions.png)
 >
 > 设置对应权限然后就可以发布属于你自己的 `Release` 了
 
