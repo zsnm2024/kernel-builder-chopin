@@ -1,4 +1,3 @@
-
 name: Delete old Releases and Workflows
 on:
   workflow_dispatch:
