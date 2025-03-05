@@ -242,7 +242,7 @@ jobs:
           fi
 
           # Apply new KernelSU patches
-          curl -LSs "https://raw.githubusercontent.com/ShirkNeko/KernelSU/susfs/kernel/setup.sh" | bash -s susfs
+          curl -LSs "https://raw.githubusercontent.com/ShirkNeko/KernelSU/susfs/kernel/setup.sh" | bash -s nongki-susfs
           cd ./KernelSU
           cp ./patch/* ./
           patch --fuzz=3 -p1 < MKSU-SKN_susfs.patch || true
