@@ -1,9 +1,9 @@
 name: Build kernels test
 
 on:
-  # push:
-    # paths:
-      # - ".github/workflows/kernel_test.yml"
+  push:
+     paths:
+      - ".github/workflows/build.yml"
   workflow_dispatch:
   schedule:
     - cron: "30 21 * * 5"
