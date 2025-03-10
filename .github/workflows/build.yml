@@ -267,7 +267,7 @@ jobs:
           cp ../kernel_patches/hooks/new_hooks.patch ./
           patch -p1 -F 3 < new_hooks.patch 
           
-          if [ "$SOME_CONDITION" = "true" ]; then
+          if [ "${{ env.SOME_CONDITION }}" = "true" ]; then
           echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
           else
           echo "CONFIG_KSU_SUSFS_SUS_SU=y" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
