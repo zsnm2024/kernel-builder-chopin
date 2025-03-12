@@ -243,6 +243,15 @@ jobs:
 
           # Apply new KernelSU patches
           curl -LSs "https://raw.githubusercontent.com/ShirkNeko/KernelSU/susfs/kernel/setup.sh" | bash -s main
+          cd ./KernelSU
+          echo "正在给MKSU-SKN打susfs补丁"
+          cp ./patch/* ./
+          patch --fuzz=3 -p1 < MKSU-SKN_susfs.patch || true
+          echo "nongki 修复补丁"
+          patch --fuzz=3 -p1 < nongki_fix.patch || true
+          echo "nongki sed 修复补丁"
+          chmod 777 nongki_fix.sh
+          ./nongki_fix.sh
           
       - name: 😋 Setup KSU SUSFS
         env: 
