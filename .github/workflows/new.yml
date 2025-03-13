@@ -242,7 +242,7 @@ jobs:
           fi
 
           # Apply new KernelSU patches
-          curl -LSs "https://raw.githubusercontent.com/ShirkNeko/KernelSU/main/kernel/setup.sh" | bash -s main
+          curl -LSs "https://raw.githubusercontent.com/liqideqq/KernelSU/main/kernel/setup.sh" | bash -s main
           cd ./KernelSU
           echo "正在给MKSU-SKN打susfs补丁"
           cp ./patch/* ./
