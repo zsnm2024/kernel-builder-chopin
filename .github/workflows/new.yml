@@ -246,7 +246,7 @@ jobs:
           cd ./KernelSU
           echo "正在给MKSU-SKN打susfs补丁"
           cp ./patch/* ./
-          patch --fuzz=3 -p1 < mksu_susfs_fix.patch || true
+          patch --fuzz=3 -p1 < sukisu_susfs.patch || true
           
       - name: 😋 Setup KSU SUSFS
         env: 
