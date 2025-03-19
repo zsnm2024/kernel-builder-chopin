@@ -39,7 +39,6 @@
     "KernelSUSFS":{
       "enable": true,
       "branches": "gki-android13-5.15"
-    },
-    "enableLXC": false
+    }
   }
 ]
