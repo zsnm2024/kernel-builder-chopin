@@ -1,4 +1,4 @@
-7name: Build kernels test
+name: Build kernels test
 
 on:
   # push:
