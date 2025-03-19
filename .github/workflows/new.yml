@@ -1,9 +1,9 @@
-name: Build kernels new
+name: Build kernels test
 
 on:
   # push:
     # paths:
-      # - ".github/workflows/build.yml"
+      # - ".github/workflows/kernel_test.yml"
   workflow_dispatch:
   schedule:
     - cron: "30 21 * * 5"
@@ -234,22 +234,18 @@ jobs:
         if: ${{ env.ENABLE_KERNELSU == 'true' }}
         run: |
           # Delete old KernelSU
-          if [ -d "./KernelSU" ]; then
-            rm -rf "./KernelSU"
+          if [ -d "./KernelSU-Next" ]; then
+            rm -rf "./KernelSU-Next"
           fi
           if [ -d "./drivers/kernelsu" ]; then
             rm -rf "./drivers/kernelsu"
           fi
 
           # Apply new KernelSU patches
-          curl -LSs "https://raw.githubusercontent.com/liqideqq/KernelSU/main/kernel/setup.sh" | bash -s main
-          cd ./KernelSU
-          echo "正在给MKSU-SKN打susfs补丁"
-          cp ./patch/* ./
-          patch -p1 < mksu_susfs.patch || true
-          patch -p1 < fix.patch || true
-          patch -p1 < vfs_fix.patch || true
-          
+          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s next
+
+          cat arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
+
       - name: 😋 Setup KSU SUSFS
         env: 
           ARCH: ${{ steps.generate-args.outputs.ARCH }}
@@ -266,17 +262,22 @@ jobs:
           cp ../susfs4ksu/kernel_patches/fs/* ./fs/
           cp ../susfs4ksu/kernel_patches/include/linux/* ./include/linux/
 
+          # Applying SUSFS patches
+          cd ./KernelSU-Next
+          cp ../../kernel_patches/next/0001-kernel-patch-susfs-v1.5.5-to-KernelSU-Next-v1.0.5.patch ./
+            patch -p1 --forward < 0001-kernel-patch-susfs-v1.5.5-to-KernelSU-Next-v1.0.5.patch || true
+          # Apply common SUSFS patch
+          cd ..
           patch -p1 < 50_add_susfs_in_${{ env.SFS_BRANCH }}.patch || true
           # Apply New Hooks Patches
-          cp ../kernel_patches/hooks/new_hooks.patch ./
-          patch -p1 -F 3 < new_hooks.patch 
+          cp ../kernel_patches/next/syscall_hooks.patch ./
+            patch -p1 -F 3 < syscall_hooks.patch
           # Apply Hide Stuff Patches
           cp ../kernel_patches/69_hide_stuff.patch ./
           patch -p1 -F 3 < 69_hide_stuff.patch
 
           # Add SUSFS configuration settings
           echo "CONFIG_KSU=y" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
-          echo "CONFIG_KSU_VFS=y" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
           echo "CONFIG_KSU_WITH_KPROBES=n" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
           echo "CONFIG_KSU_SUSFS=y" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
           echo "CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
@@ -294,18 +295,19 @@ jobs:
           echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
           echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
           echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
-
           sed -i '$s|echo "\$res"|echo "\$res-liqideqq"|' ./scripts/setlocalversion
 
-          cat arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
-          
-      - name: 🧹 Commit to avoid dirty
+      - name: 🧹 Config Kernel Name
         working-directory: ${{ env.KERNEL_NAME }}
+        env: 
+          ARCH: ${{ steps.generate-args.outputs.ARCH }}
         run: |
-          rm android/abi_gki_protected_exports_* || echo "No protected exports!"
-          git config --global user.email "bot@kernelsu.org"
-          git config --global user.name "KernelSUBot"
-          git add -A && git commit -a -m "Add KernelSU"
+          sed -i '$s|echo "\$res"|echo "\$res-ksusfs+"|' ./scripts/setlocalversion
+          # Run perl command to modify UTS_VERSION
+          perl -pi -e 's{UTS_VERSION="\$\(echo \$UTS_VERSION \$CONFIG_FLAGS \$TIMESTAMP \| cut -b -\$UTS_LEN\)"}{UTS_VERSION="#1 SMP PREEMPT Sat Apr 20 04:20:00 UTC 2024"}' ./scripts/mkcompile_h
+          sed -i 's/-dirty//' ./scripts/setlocalversion
+          rm -rf ./android/abi_gki_protected_exports_*
+          sed -E -i '/^CONFIG_LOCALVERSION=/ s/(.*)"$/\1-ksusfs+"/' ./arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }} 
 
       - name: 👍 Start building the kernel
         working-directory: ${{ env.KERNEL_NAME }}
