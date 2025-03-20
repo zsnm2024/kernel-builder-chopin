@@ -1,4 +1,4 @@
-name: Build kernels mksu
+name: Build kernels test
 
 on:
   # push:
@@ -27,6 +27,7 @@ jobs:
           echo "CONFIGS<<EOF" >> $GITHUB_OUTPUT
           jq -s '[.[][]]' Kernel/configs/*.config.json >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+
       # Set compile time.
       - name: ⏰ Set builddate
         id: generate-builddate
@@ -94,6 +95,7 @@ jobs:
           sudo apt-get install -y build-essential bc gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libssl-dev libfl-dev
           sudo apt-get install -y pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl 
           sudo apt-get install -y zip unzip tar gzip bzip2 rar unrar llvm g++-multilib bison gperf zlib1g-dev automake
+
       # Initialize ccache
       - name: 🚄 Setup ccache
         if: ${{ env.ENABLE_CCACHE == 'true' }}
@@ -101,11 +103,14 @@ jobs:
         run: |
           # Create output directory
           mkdir -p ${{ env.OUT_DIR }}
+
           # Initialize ccache
           ccache -o compression=false -o cache_dir=${{ env.CCACHE_DIR }}
+
           # Generate configuration's hash
           echo $(echo -n '${{ toJSON(matrix.config) }}' | openssl dgst -sha1 | awk '{print $2}')
           echo "HASH=$(echo -n '${{ toJSON(matrix.config) }}' | openssl dgst -sha1 | awk '{print $2}')" >> $GITHUB_OUTPUT
+
       - name: 🚅 Cache ccache & output
         env:
           HASH: ${{ steps.hash.outputs.HASH }}
@@ -120,18 +125,22 @@ jobs:
             cache-${{ env.KERNEL_NAME }}-${{env.HASH}}-${{ env.BUILD_DATE }}
             cache-${{ env.KERNEL_NAME }}-${{env.HASH}}-
             cache-${{ env.KERNEL_NAME }}-
+
       - name: 🌟 Clone kernel source => (${{ env.KERNEL_REPO }})
         run: |
           git clone --recursive --depth=1 -j $(nproc) --branch ${{ env.KERNEL_BRANCH }} ${{ env.KERNEL_REPO }} ${{ env.KERNEL_NAME }}
           # tree ${{ env.KERNEL_NAME }}
+
       - name: 💫 Get toolchains
         env:
           toolchains: "${{ toJSON(matrix.CONFIG.toolchains) }}"
         run: |
           toolchains_num="$(echo $toolchains | jq 'length')"
           echo "🤔 There is $toolchains_num defined toolchains."
+
           for ((i=0;i<toolchains_num;i++)); do
             toolchain=$(echo $toolchains | jq -r ".[$i]")
+
             toolchain_name=$(echo $toolchain | jq -r ".name")
             
             # From archive
@@ -139,8 +148,10 @@ jobs:
               # If from archive
               toolchain_url=$(echo $toolchain | jq -r ".url")
               mkdir -p $toolchain_name
+
               # Download archive
               wget -q "$toolchain_url"
+
               # Get filename
               filename="${toolchain_url##*/}"
               case "$filename" in
@@ -162,18 +173,22 @@ jobs:
               esac
               # Delete file to avoid duplicate name conflicts 
               rm $filename
+
               echo "🤔 Download $toolchain_name => ($toolchain_url)"
             else
               # If from git
               toolchain_repo=$(echo $toolchain | jq -r ".repo")
               toolchain_branch=$(echo $toolchain | jq -r ".branch")
               git clone --recursive --depth=1 -j $(nproc) --branch $toolchain_branch $toolchain_repo $toolchain_name
+
               echo "🤔 Clone $toolchain_name => ($toolchain_repo)"
             fi
+
             jq -r ".binaryEnv[] | tostring" <<< "$toolchain" | while read -r subPath; do
               echo "${{ env.WORKSPACE }}/$toolchain_name/$subPath" >> $GITHUB_PATH
             done
           done
+
       - name: 😎 Set build args
         id: generate-args
         env:
@@ -181,13 +196,17 @@ jobs:
           THREAD: $(nproc --all)
         run: |
           echo "🤔 PATH Variable: $PATH"
+
           ARCH=$(echo $PARAMS | jq -r ".ARCH")
           CC=$(echo $PARAMS | jq -r ".CC")
+
           args="-j${{ env.THREAD }} O=${{ env.OUT_DIR }} ARCH=$ARCH"
           if [ -n "$CC" ]; then
+
             if [[ "$CC" == *"/"* ]]; then
               CC=${{ env.WORKSPACE }}/$CC
             fi
+
             if [ ${{ env.ENABLE_CCACHE }} = true ]; then
               args="$args CC=\"ccache $CC\""
             else
@@ -202,9 +221,12 @@ jobs:
             fi
             args="$args $key=$value"
           done < <(jq -r '.externalCommands | to_entries[] | "\(.key)=\(.value)"' <<< "$PARAMS")
+
           echo "ARCH=$ARCH" >> $GITHUB_OUTPUT
           echo "ARGS=$args" >> $GITHUB_OUTPUT
+
           echo "🤔 $args"
+
       - name: 😋 Setup KernelSU
         working-directory: ${{ env.KERNEL_NAME }}
         env:
@@ -218,6 +240,7 @@ jobs:
           if [ -d "./drivers/kernelsu" ]; then
             rm -rf "./drivers/kernelsu"
           fi
+
           # Apply new KernelSU patches
           curl -LSs "https://raw.githubusercontent.com/liqideqq/KernelSU/main/kernel/setup.sh" | bash -s main
           
@@ -230,11 +253,13 @@ jobs:
           # Clone repositories using the branch names
           git clone https://gitlab.com/simonpunk/susfs4ksu.git -b "${{ env.SFS_BRANCH }}"
           git clone https://github.com/WildPlusKernel/kernel_patches.git
+
           # Copy SUSFS patches
           cd ${{ env.KERNEL_NAME }}
           cp ../susfs4ksu/kernel_patches/50_add_susfs_in_${{ env.SFS_BRANCH }}.patch ./
           cp ../susfs4ksu/kernel_patches/fs/* ./fs/
           cp ../susfs4ksu/kernel_patches/include/linux/* ./include/linux/
+
           patch -p1 < 50_add_susfs_in_${{ env.SFS_BRANCH }}.patch || true
           # Apply New Hooks Patches
           cp ../kernel_patches/hooks/new_hooks.patch ./
@@ -242,7 +267,7 @@ jobs:
           # Apply Hide Stuff Patches
           cp ../kernel_patches/69_hide_stuff.patch ./
           patch -p1 -F 3 < 69_hide_stuff.patch
-          
+
           # Add SUSFS configuration settings
           echo "CONFIG_KSU=y" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
           echo "CONFIG_KSU_VFS=y" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
@@ -265,6 +290,7 @@ jobs:
           echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
           echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
           sed -i '$s|echo "\$res"|echo "\$res-liqideqq"|' ./scripts/setlocalversion
+
           cat arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
           
       - name: 🧹 Commit to avoid dirty
@@ -274,6 +300,7 @@ jobs:
           git config --global user.email "bot@kernelsu.org"
           git config --global user.name "KernelSUBot"
           git add -A && git commit -a -m "Add KernelSU"
+
       - name: 👍 Start building the kernel
         working-directory: ${{ env.KERNEL_NAME }}
         env:
@@ -285,6 +312,7 @@ jobs:
           make ${{ env.ARGS }} ${{ env.KERNEL_DEFCONFIG_PATH }}
           make ${{ env.ARGS }}
           # tree ${{ env.OUT_DIR }}
+
       - name: 💛 Upload Image
         uses: actions/upload-artifact@v4
         env:
@@ -361,6 +389,7 @@ jobs:
             git clone --recursive --depth=1 -j $(nproc) https://github.com/WildPlusKernel/AnyKernel3 AnyKernel3
             echo "🤔 Use WildPlus Anykernel3 => (https://github.com/WildPlusKernel/AnyKernel3)"
           fi
+
           if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz-dtb" ]; then
             cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz-dtb ./AnyKernel3/
           else
@@ -374,8 +403,10 @@ jobs:
               cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo.img ./AnyKernel3/
             fi
           fi
+
           cd AnyKernel3/
           zip -q -r "${{ env.ANYKERNEL3_FILE }}.zip" *
+
       - name: "💾 Upload AnyKernel3 image => (${{ env.BUILD_DATE }})"
         env:
           ANYKERNEL3_FILE: "AnyKernel3-${{ env.KERNEL_NAME }}-${{ env.BUILD_DATE }}"
