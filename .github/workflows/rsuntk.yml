@@ -260,6 +260,11 @@ jobs:
           cp ../susfs4ksu/kernel_patches/fs/* ./fs/
           cp ../susfs4ksu/kernel_patches/include/linux/* ./include/linux/
 
+          # Applying SUSFS patches
+          cd ./KernelSU
+          cp ../../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./
+          patch -p1 -F 3 < 10_enable_susfs_for_ksu.patch || true
+          
           patch -p1 < 50_add_susfs_in_${{ env.SFS_BRANCH }}.patch || true
           # Apply New Hooks Patches
           cp ../kernel_patches/hooks/new_hooks.patch ./
