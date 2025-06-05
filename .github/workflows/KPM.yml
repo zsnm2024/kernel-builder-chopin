@@ -269,12 +269,12 @@ jobs:
           cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./crypto/
           cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./lib/
 
-          cp ../SukiSU_patch/other/zram/zram_patch/${{ inputs.kernel_version }}/lz4kd.patch ./
+          cp ../SukiSU_patch/other/zram/zram_patch/5.15/lz4kd.patch ./
           echo "正在打lz4kd补丁"
           patch -p1 -F 3 < lz4kd.patch || true
           echo '完成LZ4KD补丁'
 
-          cp ../SukiSU_patch/other/zram/zram_patch/${{ inputs.kernel_version }}/lz4k_oplus.patch ./
+          cp ../SukiSU_patch/other/zram/zram_patch/5.15/lz4k_oplus.patch ./
           echo "正在打lz4k_oplus补丁"
           patch -p1 -F 3 < lz4k_oplus.patch || true
           echo '完成lz4k_oplus补丁'
