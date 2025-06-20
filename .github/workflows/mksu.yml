@@ -254,25 +254,24 @@ jobs:
           git clone https://github.com/ShirkNeko/susfs4ksu.git -b "${{ env.SFS_BRANCH }}"
           git clone https://github.com/WildPlusKernel/kernel_patches.git
 
-          # Move into kernel source
-          cd ${{ env.KERNEL_NAME }}
-
           # Copy SUSFS patches
+          cd ${{ env.KERNEL_NAME }}
           cp ../susfs4ksu/kernel_patches/50_add_susfs_in_${{ env.SFS_BRANCH }}.patch ./
           cp ../susfs4ksu/kernel_patches/fs/* ./fs/
           cp ../susfs4ksu/kernel_patches/include/linux/* ./include/linux/
 
           echo "Applying SUSFS patches for MKSU..."
+          cd .
           cp ../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./
-          patch -p1 --forward --fuzz=3 < 10_enable_susfs_for_ksu.patch || echo "Patch skipped or already applied"
+          patch -p1 --forward --fuzz=3 < 10_enable_susfs_for_ksu.patch || true
 
           echo "Applying MKSU specific SUSFS patch..."
           cp ../kernel_patches/mksu/mksu_susfs.patch ./
-          patch -p1 < mksu_susfs.patch || echo "Patch skipped or already applied"
+          patch -p1 < mksu_susfs.patch || true
           cp ../kernel_patches/mksu/fix.patch ./
-          patch -p1 < fix.patch || echo "Patch skipped or already applied"
+          patch -p1 < fix.patch || true
 
-          patch -p1 < 50_add_susfs_in_${{ env.SFS_BRANCH }}.patch || echo "Patch skipped or already applied"
+          patch -p1 < 50_add_susfs_in_${{ env.SFS_BRANCH }}.patch || true
 
           # Add SUSFS configuration settings
           echo "CONFIG_KSU=y" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
