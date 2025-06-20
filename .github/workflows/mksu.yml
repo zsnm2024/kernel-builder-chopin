@@ -242,7 +242,7 @@ jobs:
           fi
 
           # Apply new KernelSU patches
-          curl -LSs "https://raw.githubusercontent.com/liqidecg/KernelSU/susfs-dev/kernel/setup.sh" | bash -s susfs-dev
+          curl -LSs "https://raw.githubusercontent.com/5ec1cff/KernelSU/main/kernel/setup.sh" | bash -s main
           
       - name: 😋 Setup KSU SUSFS
         env: 
@@ -251,7 +251,8 @@ jobs:
         if: ${{ env.ENABLE_KERNELSU == 'true' && env.ENABLE_KERNELSU_SFS == 'true' }}
         run: |
           # Clone repositories using the branch names
-          git clone https://gitlab.com/simonpunk/susfs4ksu.git -b "${{ env.SFS_BRANCH }}"
+          git clone https://github.com/ShirkNeko/susfs4ksu.git -b "${{ env.SFS_BRANCH }}"
+          git clone https://github.com/WildPlusKernel/kernel_patches.git
           git clone https://github.com/SukiSU-Ultra/SukiSU_patch.git
 
           # Copy SUSFS patches
@@ -260,11 +261,18 @@ jobs:
           cp ../susfs4ksu/kernel_patches/fs/* ./fs/
           cp ../susfs4ksu/kernel_patches/include/linux/* ./include/linux/
 
-          patch -p1 < 50_add_susfs_in_${{ env.SFS_BRANCH }}.patch || true
+          echo "Applying SUSFS patches for MKSU..."
+          cd ./KernelSU
+          cp ../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./
+          patch -p1 --forward --fuzz=3 < 10_enable_susfs_for_ksu.patch || true
 
-          # Apply New Hooks Patches
-          cp ../SukiSU_patch/hooks/syscall_hooks.patch ./
-          patch -p1 -F 3 < syscall_hooks.patch
+          echo "Applying MKSU specific SUSFS patch..."
+          cp ../kernel_patches/mksu/mksu_susfs.patch ./
+          patch -p1 < mksu_susfs.patch || true
+          cp ../kernel_patches/mksu/fix.patch ./
+          patch -p1 < fix.patch || true
+
+          patch -p1 < 50_add_susfs_in_${{ env.SFS_BRANCH }}.patch || true
 
           # Add SUSFS configuration settings
           echo "CONFIG_KSU=y" >> arch/${{ env.ARCH }}/configs/${{ env.KERNEL_DEFCONFIG_PATH }}
