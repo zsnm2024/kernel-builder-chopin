@@ -68,6 +68,9 @@ jobs:
           releases_keep_latest: 0
           delete_tags: true
 
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Configure Git identity
         run: |
           git config --global user.email "atimor@126.com" 
