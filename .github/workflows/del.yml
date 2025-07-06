@@ -65,5 +65,5 @@ jobs:
         with:
           gh_token: ${{secrets.GITHUB_TOKEN}}
           delete_releases: true
-          releases_keep_latest: 2
+          releases_keep_latest: 0
           delete_tags: true
