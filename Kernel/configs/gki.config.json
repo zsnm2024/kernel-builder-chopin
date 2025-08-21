@@ -2,8 +2,8 @@
   {
     "kernelSource": {
       "name": "android_gki_kernel_5.15_common",
-      "repo": "https://github.com/liqidecg/android_kernel_xiaomi_sm8550",
-      "branch": "15.0",
+      "repo": "https://github.com/liqidecg/kernel_xiaomi_sm8550",
+      "branch": "vauxite",
       "device": "gki",
       "defconfig": "gki_defconfig"
     },
